@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from config import token  # Import the bot's token from configuration file
+import re
 
 intents = discord.Intents.default()
 intents.members = True  # Allows the bot to work with users and ban them
@@ -8,13 +9,30 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# Deteksi pola link
+link_regex = r'https?://\S+|www\.\S+'
+
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
 @bot.event
 async def on_message(message):
-    await message.channel.send(message.content)
+    # Hindari bot merespon pesan sendiri
+    if message.author == bot.user:
+        return
+
+    # Cek apakah pesan mengandung link
+    if re.search(link_regex, message.content):
+        try:
+            await message.author.ban(reason="Mengirim link tanpa izin.")
+            await message.channel.send(f"{message.author.mention} telah dibanned karena mengirimkan link.")
+        except discord.Forbidden:
+            await message.channel.send("Aku tidak punya izin untuk ban user ini.")
+        except Exception as e:
+            await message.channel.send(f"Terjadi kesalahan: {str(e)}")
+
+    await bot.process_commands(message)  # Jangan lupa ini supaya command tetap berfungsi
 
 @bot.event
 async def on_member_join(member):
