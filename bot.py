@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from config import token  # Import the bot's token from configuration file
 import re
+import random
+import requests
 
 intents = discord.Intents.default()
 intents.members = True  # Allows the bot to work with users and ban them
@@ -62,5 +64,73 @@ async def ban_error(ctx, error):
         await ctx.send("You do not have sufficient permissions to execute this command.")
     elif isinstance(error, commands.MemberNotFound):
         await ctx.send("User not found.")
+
+def get_duck_image_url():    
+    url = 'https://random-d.uk/api/random'
+    res = requests.get(url)
+    data = res.json()
+    return data['url']
+
+@bot.command('duck')
+async def duck(ctx):
+    '''Setelah kita memanggil perintah bebek (duck), program akan memanggil fungsi get_duck_image_url'''
+    image_url = get_duck_image_url()
+    await ctx.send(image_url)
+
+@bot.command(name="quote")
+async def quote(ctx):
+    try:
+        response = requests.get("https://zenquotes.io/api/random")
+        data = response.json()
+        quote_text = data[0]["q"]
+        author = data[0]["a"]
+        await ctx.send(f"💡 \"{quote_text}\"\n— *{author}*")
+    except:
+        await ctx.send("Gagal mengambil quote. 😢")
+
+@bot.command(name="cat")
+async def cat(ctx):
+    try:
+        response = requests.get("https://api.thecatapi.com/v1/images/search")
+        data = response.json()
+        cat_url = data[0]['url']
+        embed = discord.Embed(title="Meong~ 😺")
+        embed.set_image(url=cat_url)
+        await ctx.send(embed=embed)
+    except:
+        await ctx.send("Gagal mengambil gambar kucing. 😿")
+
+@bot.command()
+async def pilih(ctx):
+    message = await ctx.send("Pilih:\n👍\n👎")
+    await message.add_reaction("👍")
+    await message.add_reaction("👎")
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in ["👍", "👎"]
+
+    try:
+        reaction, user = await bot.wait_for("reaction_add", timeout=30.0, check=check)
+        if str(reaction.emoji) == "👍":
+            await ctx.send("TENGS! aku emang paling best")
+        elif str(reaction.emoji) == "👎":
+            await ctx.send("Makasih feedbacknya, nnti aku evaluasi😢!")
+    except TimeoutError:
+        await ctx.send("Waktu habis. Silakan coba lagi.")
+
+
+@bot.command(name="info")
+async def info(ctx):
+    embed = discord.Embed(
+        title="📌 Info Bot",
+        description="Bot multifungsi yang bisa kasih password random, gambar bebek, kucing lucu, kutipan inspirasional, dan masih banyak lagi! 🐤🐱💬",
+        color=discord.Color.purple()
+    )
+    embed.add_field(name="Prefix", value="`/`", inline=True)
+    embed.add_field(name="Developer", value="Aku yang sigma itu 😏", inline=True)
+    embed.add_field(name="Command yang tersedia", value="1. Memberikan informasi tentang perintah yang tersedia serta fungsinya `(/info)`\n2. Membuat password random `(/passw)`\n3. Mengirim gambar bebek `(/duck)`\n4. Mengirim gambar kucing `(/cat)`\n5. Mengirim quotes `(/quote)`\n5. Memilih emoji! `(/pilih)`", inline=False)
+    embed.set_footer(text="Salam kebajikan")
+
+    await ctx.send(embed=embed)
 
 bot.run(token)
